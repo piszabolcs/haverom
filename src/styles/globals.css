@@ -1,0 +1,406 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Brand colours as RGB triplets, so Tailwind opacity modifiers (bg-haverom-green/20) work. */
+  /* Taken from the mascot: navy night, deep teal, emerald body and its mint glow. */
+  --haverom-forest-rgb: 9 21 45;        /* #09152D navy */
+  --haverom-green-rgb: 38 160 130;      /* #26A082 teal-emerald */
+  --haverom-light-green-rgb: 98 236 190; /* #62ECBE mint glow */
+  --haverom-mint-rgb: 162 221 203;      /* #A2DDCB soft mint */
+  --haverom-teal-rgb: 23 57 58;         /* #17393A deep teal (tile top) */
+
+  /* Panel and card gradients and backgrounds. */
+  --panel-translucent-a: 18 46 50;
+  --panel-translucent-b: 9 21 45;
+  --panel-opaque-a: 20 50 54;
+  --panel-opaque-b: 10 24 48;
+  --panel-glass: rgba(10, 24, 40, 0.72);
+  --haverom-input-bg: #0c1f2e;
+  --haverom-diag-bg: #071321;
+
+  /* Native controls (scrollbars, spin buttons, select arrows) in their dark variant. */
+  color-scheme: dark;
+
+  --panel-border: rgba(255, 255, 255, 0.14);
+  --text-primary: #f4f8fc;
+  --text-secondary: #afc3d8;
+  --success: #2bd576;
+  --warning: #ffb020;
+  --danger: #ff5c5c;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  /* Transparent background: the Electron window is transparent, only the panel/bubble shows. */
+  background: transparent;
+  overflow: hidden;
+  font-family: 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+/*
+ * No backdrop-filter on purpose: in a transparent Electron window it draws a dark, square
+ * artefact behind the rounded panel. The shadow is small so it fits the window margin.
+ */
+.glass-panel {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.5);
+  border-radius: 24px;
+  transition: background 0.25s ease;
+}
+
+/* Inactive window: slightly translucent */
+.panel-translucent {
+  background: linear-gradient(
+    145deg,
+    rgb(var(--panel-translucent-a) / 0.82),
+    rgb(var(--panel-translucent-b) / 0.55)
+  );
+}
+
+/* Active window (focused or hovered): opaque and easy to read */
+.panel-opaque {
+  background: linear-gradient(145deg, rgb(var(--panel-opaque-a)), rgb(var(--panel-opaque-b)));
+}
+
+/*
+ * High contrast: solid dark background, stronger borders and brighter secondary text,
+ * including the faded variants (text-text-secondary/60, /70 …) used for small print.
+ */
+.high-contrast .panel-opaque,
+.high-contrast .panel-translucent {
+  background: #081a0f;
+}
+.high-contrast .glass-panel {
+  border-color: rgba(255, 255, 255, 0.4);
+}
+.high-contrast .glass-card {
+  background: #04120a;
+  border-color: rgba(255, 255, 255, 0.32);
+}
+.high-contrast .text-text-secondary,
+.high-contrast [class*='text-text-secondary/'] {
+  color: #e4eef8 !important;
+}
+.high-contrast .glass-panel {
+  filter: contrast(1.12);
+}
+
+.glass-card {
+  background: var(--panel-glass);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
+}
+
+.drag-region {
+  -webkit-app-region: drag;
+}
+
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* Visible keyboard focus (mouse clicks do not show it). */
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+a:focus-visible {
+  outline: 2px solid rgb(var(--haverom-light-green-rgb));
+  outline-offset: 2px;
+}
+
+/*
+ * Author signature in the footer: bare text, no box or outline at any time; the only
+ * affordance is a soft glow in the theme accent on hover and keyboard focus.
+ */
+.signature {
+  border: 0;
+  padding: 0;
+  background: none;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: rgb(175 195 216 / 0.6);
+  cursor: pointer;
+  transition:
+    color 180ms ease,
+    text-shadow 180ms ease;
+}
+.signature:hover,
+.signature:focus-visible {
+  outline: none;
+  color: rgb(var(--haverom-light-green-rgb));
+  text-shadow: 0 0 8px rgb(var(--haverom-light-green-rgb) / 0.75);
+}
+.high-contrast .signature {
+  color: #e4eef8;
+}
+@media (prefers-reduced-motion: reduce) {
+  .signature {
+    transition: none;
+  }
+}
+
+/*
+ * Scrolled content fades out at the top/bottom edge instead of being cut off by the
+ * rounded panel; the fade only appears while there is more content in that direction
+ * (see useScrollFade). The scrollbar track is inset, so it never runs into a rounded corner.
+ */
+.scroll-fade {
+  --fade-top: 0px;
+  --fade-bottom: 0px;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 var(--fade-top),
+    #000 calc(100% - var(--fade-bottom)),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 var(--fade-top),
+    #000 calc(100% - var(--fade-bottom)),
+    transparent 100%
+  );
+}
+.scroll-fade[data-fade-top='true'] {
+  --fade-top: 24px;
+}
+.scroll-fade[data-fade-bottom='true'] {
+  --fade-bottom: 28px;
+}
+.scroll-fade::-webkit-scrollbar-track {
+  margin-block: 10px;
+}
+
+/* Thin, unobtrusive scrollbar for the chat */
+.chat-scroll::-webkit-scrollbar,
+.md pre::-webkit-scrollbar,
+.md table::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.chat-scroll::-webkit-scrollbar-track,
+.md pre::-webkit-scrollbar-track,
+.md table::-webkit-scrollbar-track {
+  background: transparent;
+}
+.chat-scroll::-webkit-scrollbar-thumb,
+.md pre::-webkit-scrollbar-thumb,
+.md table::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 3px;
+}
+.chat-scroll::-webkit-scrollbar-thumb:hover,
+.md pre::-webkit-scrollbar-thumb:hover,
+.md table::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+/* The floating bubble: a rounded tile like the app icon - teal to navy, a mint glow
+   behind the mascot, a mint rim inside and a soft mint glow outside that breathes. */
+.bubble-tile {
+  border-radius: 18px;
+  border: 1px solid rgb(var(--haverom-light-green-rgb) / 0.55);
+  background:
+    radial-gradient(circle at 50% 56%, rgb(var(--haverom-light-green-rgb) / 0.28), transparent 62%),
+    linear-gradient(180deg, rgb(var(--haverom-teal-rgb)), rgb(var(--haverom-forest-rgb)));
+}
+
+@keyframes bubble-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 6px 16px rgba(0, 0, 0, 0.45),
+      0 0 10px 1px rgb(var(--haverom-light-green-rgb) / 0.35),
+      inset 0 0 10px rgb(var(--haverom-light-green-rgb) / 0.35);
+  }
+  50% {
+    box-shadow:
+      0 6px 16px rgba(0, 0, 0, 0.45),
+      0 0 18px 4px rgb(var(--haverom-light-green-rgb) / 0.55),
+      inset 0 0 14px rgb(var(--haverom-light-green-rgb) / 0.5);
+  }
+}
+
+.bubble-pulse {
+  animation: bubble-pulse 3.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bubble-pulse {
+    animation: none;
+    box-shadow:
+      0 6px 16px rgba(0, 0, 0, 0.45),
+      0 0 12px 2px rgb(var(--haverom-light-green-rgb) / 0.45),
+      inset 0 0 12px rgb(var(--haverom-light-green-rgb) / 0.4);
+  }
+}
+
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.panel-in {
+  animation: panel-in 0.22s ease-out;
+}
+
+@keyframes typing-dot {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+.typing-dot {
+  animation: typing-dot 1.2s infinite;
+}
+.typing-dot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.typing-dot:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+input,
+textarea {
+  user-select: text;
+}
+
+/* Markdown rendering of the model's reply – 1:1, compact, tuned for the dark theme. */
+.md {
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: rgba(244, 248, 252, 0.92);
+  user-select: text;
+  word-break: break-word;
+}
+.md > *:first-child {
+  margin-top: 0;
+}
+.md > *:last-child {
+  margin-bottom: 0;
+}
+.md h1,
+.md h2,
+.md h3,
+.md h4 {
+  margin: 12px 0 4px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--text-primary);
+}
+.md h1 {
+  font-size: 15px;
+}
+.md h2 {
+  font-size: 14px;
+}
+.md h3 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgb(var(--haverom-mint-rgb));
+}
+.md h4 {
+  font-size: 12px;
+}
+.md p {
+  margin: 6px 0;
+}
+.md ul,
+.md ol {
+  margin: 6px 0;
+  padding-left: 18px;
+}
+.md li {
+  margin: 2px 0;
+}
+.md li::marker {
+  color: rgb(var(--haverom-light-green-rgb));
+}
+.md a {
+  color: rgb(var(--haverom-light-green-rgb));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.md strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.md code {
+  font-family: 'Cascadia Code', 'Consolas', monospace;
+  font-size: 11.5px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+.md pre {
+  margin: 8px 0;
+  padding: 10px 12px;
+  background: #07160c;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  overflow-x: auto;
+}
+.md pre code {
+  background: transparent;
+  padding: 0;
+}
+.md blockquote {
+  margin: 8px 0;
+  padding: 6px 12px;
+  border-left: 3px solid var(--warning);
+  background: rgba(255, 176, 32, 0.1);
+  border-radius: 0 8px 8px 0;
+  color: rgba(255, 176, 32, 0.92);
+  font-size: 11.5px;
+}
+.md blockquote p {
+  margin: 0;
+}
+.md hr {
+  margin: 12px 0;
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+.md table {
+  margin: 8px 0;
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 11.5px;
+  display: block;
+  overflow-x: auto;
+}
+.md th,
+.md td {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  padding: 4px 8px;
+  text-align: left;
+}
+.md th {
+  background: rgba(255, 255, 255, 0.06);
+  font-weight: 600;
+}

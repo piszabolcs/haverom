@@ -1,0 +1,23 @@
+# Dependencies and build output
+node_modules/
+dist/
+dist-electron/
+release/
+build/
+coverage/
+*.tsbuildinfo
+*.log
+*.exe
+
+# Local environment / editor
+.env
+.env.*
+!.env.example
+.vscode/
+
+# Raw multi-MB logo sources (not shipped; public/ holds the app icons)
+branding/
+
+# Internal planning notes (Hungarian, contain references to unrelated internal projects)
+fejlesztések_md/
+HAVEROM_ALLAPOT.md
